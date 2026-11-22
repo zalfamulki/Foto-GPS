@@ -29,7 +29,7 @@ export async function embedGpsExif(jpeg: Blob, meta: CaptureMeta): Promise<Blob>
 
     const zeroth: Record<number, unknown> = {
       [IFD0.DateTime]: dt,
-      [IFD0.Software]: 'Foto GPS PWA',
+      [IFD0.Software]: 'Lokasnap PWA',
     }
     const exifIfd: Record<number, unknown> = {
       [EXIF.DateTimeOriginal]: dt,

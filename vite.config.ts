@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'maskable-icon-512x512.png'],
       manifest: {
-        name: 'Foto GPS: Kamera Watermark Lokasi',
-        short_name: 'Foto GPS',
+        name: 'Lokasnap: Kamera Watermark Lokasi',
+        short_name: 'Lokasnap',
         description:
           'Kamera dengan watermark koordinat GPS, alamat, dan waktu otomatis. Foto tersimpan di perangkat.',
         lang: 'id',

@@ -48,7 +48,7 @@ export default function Splash() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.4 }}
         >
-          Foto GPS
+          Lokasnap
         </motion.h1>
         <motion.p
           className="text-sm text-muted"

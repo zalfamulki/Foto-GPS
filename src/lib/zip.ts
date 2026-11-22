@@ -42,7 +42,7 @@ export async function exportPhotosZip(photos: PhotoRecord[]): Promise<Blob> {
     })
   }
   const manifest = {
-    app: 'Foto GPS',
+    app: 'Lokasnap',
     format: 1,
     exportedAt: new Date().toISOString(),
     photos: metas,
@@ -65,7 +65,7 @@ export async function importPhotosZip(file: File): Promise<number> {
   })
 
   const raw = entries['metadata.json']
-  if (!raw) throw new Error('Berkas ZIP tidak berisi metadata.json dari Foto GPS')
+  if (!raw) throw new Error('Berkas ZIP tidak berisi metadata.json dari Lokasnap')
   let manifest: { photos?: PhotoMeta[] }
   try {
     manifest = JSON.parse(strFromU8(raw))

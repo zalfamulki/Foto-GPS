@@ -3,7 +3,7 @@ export interface WmOptions {
   map: boolean
   /** Radius akurasi ±m pada baris koordinat. */
   accuracy: boolean
-  /** Label "Foto GPS" di atas blok teks. */
+  /** Label "Lokasnap" di atas blok teks. */
   brand: boolean
   /** Pengali ukuran teks watermark (0.85 kecil, 1 sedang, 1.2 besar). */
   scale: number

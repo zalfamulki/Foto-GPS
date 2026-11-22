@@ -373,7 +373,7 @@ export default function Settings() {
             />
             <Toggle
               label="Label aplikasi"
-              hint="Tulisan Foto GPS di blok watermark"
+              hint="Tulisan Lokasnap di blok watermark"
               checked={wm.brand}
               onChange={(v) => updateWm({ brand: v })}
             />
@@ -470,7 +470,7 @@ export default function Settings() {
         >
           <h2 className="text-sm font-semibold text-ink">Tentang</h2>
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            Foto GPS v{pkg.version}. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di
+            Lokasnap v{pkg.version}. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di
             perangkat.
           </p>
           <p className="mt-1 text-xs text-muted">{GEOCODE_ATTRIBUTION}</p>

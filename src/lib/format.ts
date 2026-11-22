@@ -61,5 +61,5 @@ export function photoFileName(p: { id: string; takenAt: number }): string {
   const d = new Date(p.takenAt)
   const pad = (v: number) => String(v).padStart(2, '0')
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
-  return `fotogps-${stamp}-${p.id.slice(0, 6)}.jpg`
+  return `lokasnap-${stamp}-${p.id.slice(0, 6)}.jpg`
 }

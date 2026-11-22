@@ -196,7 +196,7 @@ export async function buildWatermarkedPhoto(
   drawText(ctx, fittedTime, w - m, y, fontTime, fsTime, '#ffffff')
   if (options.brand) {
     y -= lhBrand
-    drawText(ctx, 'Foto GPS', w - m, y, fontBrand, fsBrand, 'rgba(255, 255, 255, 0.95)')
+    drawText(ctx, 'Lokasnap', w - m, y, fontBrand, fsBrand, 'rgba(255, 255, 255, 0.95)')
   }
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
