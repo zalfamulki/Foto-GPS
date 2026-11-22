@@ -2,22 +2,30 @@
 
 @theme {
   --font-sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --color-canvas: #0a0d13;
-  --color-surface: #12161f;
-  --color-raised: #1a2029;
-  --color-line: #262d3a;
+  --color-canvas: #f7f4ee;
+  --color-surface: #ffffff;
+  --color-raised: #f0ece3;
+  --color-line: #e4dfd3;
+  --color-ink: #24211b;
+  --color-muted: #6f695c;
   --color-brand: #f5a524;
   --color-brand-strong: #ffb938;
+  --color-brand-ink: #b45309;
+  --color-brand-soft: #fdf0d5;
+  --color-ok: #047857;
+  --color-ok-soft: #dcf3e7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee7e5;
 }
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     background: var(--color-canvas);
-    color: #e8ebf1;
+    color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
   }

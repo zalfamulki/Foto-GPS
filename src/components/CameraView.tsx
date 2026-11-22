@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { db, type PhotoRecord } from '../db'
 import { openCamera, stopStream, detectFrontLike, type Facing } from '../lib/camera'
@@ -229,7 +230,11 @@ export default function CameraView() {
     : (gpsError ?? 'Mencari sinyal GPS…')
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
+    <div
+      className={`relative h-full w-full overflow-hidden ${
+        cameraError ? 'bg-canvas' : 'bg-black'
+      }`}
+    >
       {!cameraError && (
         <video
           ref={videoRef}
@@ -253,9 +258,14 @@ export default function CameraView() {
 
       {flash && <div className="absolute inset-0 bg-white/80" aria-hidden="true" />}
 
-      <div className="absolute inset-x-0 top-0 flex flex-col items-start gap-1.5 p-3">
+      <motion.div
+        className="absolute inset-x-0 top-0 flex flex-col items-start gap-1.5 p-3"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white">
-          <IconPin size={13} className="text-brand" />
+          <IconPin size={13} className={fix && fix.accuracy <= GOOD_ACCURACY_M ? 'text-brand-strong' : 'text-brand'} />
           {gpsLabel}
         </span>
         {addressPreview && (
@@ -264,38 +274,45 @@ export default function CameraView() {
           </span>
         )}
         {savedNote && (
-          <span className="inline-flex w-fit rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-black">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-ink"
+          >
             Foto tersimpan
-          </span>
+          </motion.span>
         )}
-      </div>
+      </motion.div>
 
       {cameraError ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
-          <IconUpload size={36} className="text-zinc-600" />
-          <p className="text-sm leading-relaxed text-zinc-400">{cameraError}</p>
-          <button
+          <IconUpload size={36} className="text-line" />
+          <p className="text-sm leading-relaxed text-muted">{cameraError}</p>
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.96 }}
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-black transition hover:bg-brand-strong active:scale-[0.98]"
+            className="rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-ink shadow-sm"
           >
             Ambil foto dengan aplikasi kamera
-          </button>
+          </motion.button>
         </div>
       ) : (
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-10 pb-6 pt-10">
-          <button
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.9 }}
             onClick={() => fileInputRef.current?.click()}
             aria-label="Pilih foto dari berkas"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75 active:scale-95"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
           >
             <IconUpload size={20} />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={captureFromVideo}
             disabled={!cameraReady || busy}
+            whileTap={cameraReady && !busy ? { scale: 0.88 } : undefined}
             aria-label="Jepret foto"
             className="group relative flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-white disabled:opacity-40"
           >
@@ -306,19 +323,20 @@ export default function CameraView() {
               />
             ) : (
               <span
-                className="h-[60px] w-[60px] rounded-full bg-white transition group-active:scale-90"
+                className="h-[60px] w-[60px] rounded-full bg-brand shadow-inner transition group-active:scale-90"
                 aria-hidden="true"
               />
             )}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.9 }}
             onClick={() => setFacing((f) => (f === 'environment' ? 'user' : 'environment'))}
             aria-label="Ganti kamera depan atau belakang"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75 active:scale-95"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
           >
             <IconFlip size={20} />
-          </button>
+          </motion.button>
         </div>
       )}
 

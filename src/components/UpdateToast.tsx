@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 
@@ -39,26 +40,43 @@ export default function UpdateToast() {
     return () => window.clearTimeout(t)
   }, [offlineReady])
 
-  if (!needRefresh && !offlineReady) return null
-
   return (
-    <div role="status" className="fixed inset-x-0 top-0 z-[60] flex justify-center p-3">
-      {needRefresh ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-lg">
-          <span className="text-sm text-zinc-200">Versi baru tersedia</span>
-          <button
-            type="button"
-            onClick={() => void swRef.current?.(true)}
-            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-black transition hover:bg-brand-strong active:scale-95"
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center p-3">
+      <AnimatePresence>
+        {needRefresh ? (
+          <motion.div
+            key="update"
+            initial={{ y: -28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -28, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-lg"
+            role="status"
           >
-            Muat ulang
-          </button>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-zinc-300 shadow-lg">
-          Aplikasi siap dipakai offline
-        </div>
-      )}
+            <span className="text-sm text-ink">Versi baru tersedia</span>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.94 }}
+              onClick={() => void swRef.current?.(true)}
+              className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-brand-strong"
+            >
+              Muat ulang
+            </motion.button>
+          </motion.div>
+        ) : offlineReady ? (
+          <motion.div
+            key="offline"
+            initial={{ y: -28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -28, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink shadow-lg"
+            role="status"
+          >
+            Aplikasi siap dipakai offline
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

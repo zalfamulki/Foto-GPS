@@ -16,8 +16,8 @@ export default defineConfig({
         description:
           'Kamera kurir dengan watermark koordinat GPS, alamat, dan waktu otomatis. Foto tersimpan di perangkat.',
         lang: 'id',
-        theme_color: '#0a0d13',
-        background_color: '#0a0d13',
+        theme_color: '#f7f4ee',
+        background_color: '#f7f4ee',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

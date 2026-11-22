@@ -1,3 +1,4 @@
+import { motion, type Variants } from 'motion/react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
@@ -15,6 +16,16 @@ import {
   subscribeInstallPrompt,
 } from '../lib/pwa'
 import { exportPhotosZip, importPhotosZip } from '../lib/zip'
+
+const stackVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+}
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: 'easeOut' } },
+}
 
 export default function Settings() {
   const [info, setInfo] = useState<StorageInfo | null>(null)
@@ -94,124 +105,158 @@ export default function Settings() {
     info && info.quota > 0 ? Math.min(100, Math.round((info.usage / info.quota) * 100)) : 0
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto flex max-w-md flex-col gap-3 p-4 pb-8">
-        <h1 className="text-lg font-bold text-white">Pengaturan</h1>
+    <div className="h-full overflow-y-auto bg-canvas">
+      <motion.div
+        variants={stackVariants}
+        initial="hidden"
+        animate="show"
+        className="mx-auto flex max-w-md flex-col gap-3 p-4 pb-8"
+      >
+        <motion.h1 variants={cardVariants} className="text-2xl font-extrabold tracking-tight text-ink">
+          Pengaturan
+        </motion.h1>
 
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="text-sm font-semibold text-white">Penyimpanan perangkat</h2>
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
+          <h2 className="text-sm font-semibold text-ink">Penyimpanan perangkat</h2>
           {info?.supported === false ? (
-            <p className="mt-2 text-xs text-zinc-400">
+            <p className="mt-2 text-xs text-muted">
               Browser ini tidak mendukung estimasi penyimpanan.
             </p>
           ) : (
             <>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-raised">
-                <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                <motion.div
+                  className="h-full rounded-full bg-brand"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
               </div>
-              <p className="mt-2 text-xs tabular-nums text-zinc-400">
+              <p className="mt-2 text-xs tabular-nums text-muted">
                 {fmtBytes(info?.usage ?? 0)} dari {fmtBytes(info?.quota ?? 0)} terpakai
               </p>
             </>
           )}
           {info && !info.persisted && (
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.97 }}
               onClick={() => void enablePersist()}
-              className="mt-3 w-full rounded-xl border border-brand/60 bg-brand/10 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand/20 active:scale-[0.98]"
+              className="mt-3 w-full rounded-xl border border-brand bg-brand-soft py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand/25"
             >
               Aktifkan penyimpanan persisten
-            </button>
+            </motion.button>
           )}
           {info?.persisted && (
-            <p className="mt-3 text-xs font-medium text-emerald-400">
+            <p className="mt-3 rounded-xl bg-ok-soft px-3 py-2 text-xs font-medium text-ok">
               Penyimpanan persisten aktif. Data dilindungi dari pembersihan otomatis browser.
             </p>
           )}
-          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             Foto tersimpan langsung di perangkat (IndexedDB) dan tidak dikirim ke server mana
             pun. Pembersihan site data atau reset pabrik tetap bisa menghapusnya, jadi buat
             cadangan ZIP secara berkala.
           </p>
-        </section>
+        </motion.section>
 
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="text-sm font-semibold text-white">Install aplikasi</h2>
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
+          <h2 className="text-sm font-semibold text-ink">Install aplikasi</h2>
           {installAvailable ? (
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.97 }}
               onClick={() => void runInstallPrompt()}
-              className="mt-3 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-black transition hover:bg-brand-strong active:scale-[0.98]"
+              className="mt-3 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand-strong"
             >
               Install ke layar utama
-            </button>
+            </motion.button>
           ) : (
-            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+            <p className="mt-2 text-xs leading-relaxed text-muted">
               Buka menu browser lalu pilih "Tambahkan ke layar utama" untuk memasang seperti
               aplikasi biasa.
             </p>
           )}
-        </section>
+        </motion.section>
 
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="text-sm font-semibold text-white">Cadangan &amp; pulihkan</h2>
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
+          <h2 className="text-sm font-semibold text-ink">Cadangan &amp; pulihkan</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.97 }}
               onClick={() => void handleExport()}
               disabled={!count || exporting}
-              className="rounded-xl border border-brand/60 bg-brand/10 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand/20 active:scale-[0.98] disabled:opacity-40"
+              className="rounded-xl border border-brand bg-brand-soft py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand/25 disabled:opacity-40"
             >
               {exporting ? 'Menyiapkan…' : 'Ekspor ZIP'}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
+              whileTap={{ scale: 0.97 }}
               onClick={() => zipInputRef.current?.click()}
               disabled={importing}
-              className="rounded-xl border border-white/25 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] disabled:opacity-40"
+              className="rounded-xl border border-line py-2.5 text-sm font-semibold text-ink transition hover:bg-raised disabled:opacity-40"
             >
               {importing ? 'Mengimpor…' : 'Impor ZIP'}
-            </button>
+            </motion.button>
           </div>
           {msg && (
-            <p
-              className={`mt-3 text-xs font-medium ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}
+            <motion.p
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mt-3 text-xs font-medium ${msg.ok ? 'text-ok' : 'text-danger'}`}
               role="status"
             >
               {msg.text}
-            </p>
+            </motion.p>
           )}
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted">
             {count ?? 0} foto akan dikemas beserta koordinat, alamat, dan waktunya.
           </p>
-        </section>
+        </motion.section>
 
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="text-sm font-semibold text-white">Hapus data</h2>
-          <button
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
+          <h2 className="text-sm font-semibold text-ink">Hapus data</h2>
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.97 }}
             onClick={() => void handleWipe()}
-            className={`mt-3 w-full rounded-xl py-2.5 text-sm font-semibold transition active:scale-[0.98] ${
+            className={`mt-3 w-full rounded-xl py-2.5 text-sm font-semibold transition ${
               confirmWipe
-                ? 'bg-red-500 text-white hover:bg-red-400'
-                : 'border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                ? 'bg-danger text-white hover:bg-danger/85'
+                : 'border border-danger/40 bg-danger-soft text-danger hover:bg-danger/25'
             }`}
           >
             {confirmWipe ? 'Yakin? Ketuk lagi untuk menghapus' : 'Hapus semua foto'}
-          </button>
-        </section>
+          </motion.button>
+        </motion.section>
 
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="text-sm font-semibold text-white">Tentang</h2>
-          <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-            Foto GPS v1.0.0. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di perangkat.
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
+          <h2 className="text-sm font-semibold text-ink">Tentang</h2>
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            Foto GPS v1.1.0. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di perangkat.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">{GEOCODE_ATTRIBUTION}</p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-muted">{GEOCODE_ATTRIBUTION}</p>
+          <p className="mt-1 text-xs text-muted">
             Ikon aplikasi masih placeholder. Ganti berkas public/icon.svg bila ingin memakai
             logo sendiri, lalu jalankan npm run generate-pwa-assets.
           </p>
-        </section>
+        </motion.section>
 
         <input
           ref={zipInputRef}
@@ -223,7 +268,7 @@ export default function Settings() {
             e.target.value = ''
           }}
         />
-      </div>
+      </motion.div>
     </div>
   )
 }
