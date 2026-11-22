@@ -4,7 +4,10 @@ import { cacheKey } from './geocode'
 const TILE = 256
 const GRID = 3
 const TTL = 30 * 24 * 60 * 60 * 1000
-const SOURCE = 'https://tile.openstreetmap.org'
+/** Carto Voyager: gaya peta terang yang cocok dengan tema aplikasi, CORS terbuka. */
+const SOURCE = 'https://basemaps.cartocdn.com/rastertiles/voyager'
+
+export const MAP_ATTRIBUTION = '© OpenStreetMap © CARTO'
 
 function lonToTileX(lon: number, zoom: number): number {
   return ((lon + 180) / 360) * 2 ** zoom

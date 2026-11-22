@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { db } from '../db'
 import { fmtCoords, fmtDateTime, fmtDms, photoFileName } from '../lib/format'
 import { readExifSummary, type ExifSummary } from '../lib/exif-read'
+import { MAP_ATTRIBUTION } from '../lib/staticmap'
 import { useObjectUrl } from '../lib/useObjectUrl'
 import { IconClose, IconDownload } from './Icons'
 
@@ -104,7 +105,7 @@ export default function PhotoDetail({ id, onClose }: Props) {
               alt="Peta lokasi dengan pin"
               className="max-h-40 w-full max-w-[240px] rounded-xl border border-line object-cover"
             />
-            <p className="mt-1 text-[10px] text-muted">Peta © OpenStreetMap</p>
+            <p className="mt-1 text-[10px] text-muted">Peta {MAP_ATTRIBUTION}</p>
           </div>
         )}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

@@ -1,6 +1,7 @@
 import { motion, type Variants } from 'motion/react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import pkg from '../../package.json'
 import {
   db,
   deleteAllPhotos,
@@ -11,11 +12,55 @@ import {
 import { fmtBytes } from '../lib/format'
 import { GEOCODE_ATTRIBUTION } from '../lib/geocode'
 import {
+  loadWmOptions,
+  saveWmOptions,
+  WM_SCALES,
+  type WmOptions,
+} from '../lib/wmsettings'
+import {
   getInstallPromptAvailable,
   runInstallPrompt,
   subscribeInstallPrompt,
 } from '../lib/pwa'
 import { exportPhotosZip, importPhotosZip } from '../lib/zip'
+
+function Toggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint?: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 py-2.5 text-left"
+    >
+      <span>
+        <span className="block text-sm font-medium text-ink">{label}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
+      <span
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+          checked ? 'bg-brand' : 'border border-line bg-raised'
+        }`}
+      >
+        <motion.span
+          className="h-5 w-5 rounded-full bg-white shadow"
+          animate={{ x: checked ? 22 : 2 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+        />
+      </span>
+    </button>
+  )
+}
 
 const stackVariants: Variants = {
   hidden: {},
@@ -33,6 +78,7 @@ export default function Settings() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
+  const [wm, setWm] = useState<WmOptions>(() => loadWmOptions())
   const zipInputRef = useRef<HTMLInputElement>(null)
   const count = useLiveQuery(() => db.photos.count())
   const installAvailable = useSyncExternalStore(
@@ -51,6 +97,12 @@ export default function Settings() {
   const enablePersist = async () => {
     await ensurePersistentStorage()
     refreshInfo()
+  }
+
+  const updateWm = (patch: Partial<WmOptions>) => {
+    const next = { ...wm, ...patch }
+    setWm(next)
+    saveWmOptions(next)
   }
 
   const handleExport = async () => {
@@ -188,6 +240,61 @@ export default function Settings() {
           variants={cardVariants}
           className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
         >
+          <h2 className="text-sm font-semibold text-ink">Isi watermark</h2>
+          <p className="mt-1 text-xs text-muted">
+            Atur komponen yang dicetak pada setiap foto.
+          </p>
+          <div className="mt-1 divide-y divide-line">
+            <Toggle
+              label="Kartu peta"
+              hint="Peta mini dengan pin lokasi di kiri-bawah"
+              checked={wm.map}
+              onChange={(v) => updateWm({ map: v })}
+            />
+            <Toggle
+              label="Akurasi GPS"
+              hint="Teks ±meter di samping koordinat"
+              checked={wm.accuracy}
+              onChange={(v) => updateWm({ accuracy: v })}
+            />
+            <Toggle
+              label="Label aplikasi"
+              hint="Tulisan Foto GPS di blok watermark"
+              checked={wm.brand}
+              onChange={(v) => updateWm({ brand: v })}
+            />
+          </div>
+          <p className="mb-1.5 mt-2 text-xs font-medium text-muted">Ukuran teks</p>
+          <div className="flex rounded-xl border border-line bg-raised p-1">
+            {WM_SCALES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => updateWm({ scale: s.value })}
+                aria-pressed={wm.scale === s.value}
+                className="relative flex-1 rounded-lg py-1.5 text-xs font-semibold"
+              >
+                {wm.scale === s.value && (
+                  <motion.span
+                    layoutId="wm-scale-pill"
+                    className="absolute inset-0 rounded-lg bg-brand"
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  />
+                )}
+                <span
+                  className={`relative ${wm.scale === s.value ? 'text-ink' : 'text-muted'}`}
+                >
+                  {s.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </motion.section>
+
+        <motion.section
+          variants={cardVariants}
+          className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
+        >
           <h2 className="text-sm font-semibold text-ink">Cadangan &amp; pulihkan</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <motion.button
@@ -249,7 +356,8 @@ export default function Settings() {
         >
           <h2 className="text-sm font-semibold text-ink">Tentang</h2>
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            Foto GPS v1.1.0. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di perangkat.
+            Foto GPS v{pkg.version}. Kamera, GPS, dan penyimpanan berjalan sepenuhnya di
+            perangkat.
           </p>
           <p className="mt-1 text-xs text-muted">{GEOCODE_ATTRIBUTION}</p>
           <p className="mt-1 text-xs text-muted">

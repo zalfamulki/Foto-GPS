@@ -4,7 +4,8 @@ import type { GeoFix } from './geo'
 const ENDPOINT = 'https://nominatim.openstreetmap.org/reverse'
 const TTL = 90 * 24 * 60 * 60 * 1000
 
-export const GEOCODE_ATTRIBUTION = 'Data alamat dan peta dari OpenStreetMap'
+export const GEOCODE_ATTRIBUTION =
+  'Alamat dari OpenStreetMap (Nominatim). Peta © OpenStreetMap contributors © CARTO'
 
 export function cacheKey(lat: number, lon: number): string {
   return `${lat.toFixed(4)},${lon.toFixed(4)}`

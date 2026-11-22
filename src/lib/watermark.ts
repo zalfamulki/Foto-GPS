@@ -1,4 +1,5 @@
 import { fmtDateTimeTz } from './format'
+import { MAP_ATTRIBUTION } from './staticmap'
 
 export interface CaptureMeta {
   lat: number | null
@@ -11,6 +12,20 @@ export interface CaptureMeta {
   /** Citra peta statis berpin (kartu kiri-bawah), null bila offline. */
   mapBlob: Blob | null
   takenAt: number
+}
+
+export interface WatermarkOptions {
+  map: boolean
+  accuracy: boolean
+  brand: boolean
+  scale: number
+}
+
+export const WM_RENDER_DEFAULTS: WatermarkOptions = {
+  map: true,
+  accuracy: true,
+  brand: true,
+  scale: 1,
 }
 
 export interface BuiltPhoto {
@@ -73,6 +88,7 @@ export async function buildWatermarkedPhoto(
   srcH: number,
   meta: CaptureMeta,
   mirror = false,
+  options: WatermarkOptions = WM_RENDER_DEFAULTS,
 ): Promise<BuiltPhoto> {
   const scale = Math.min(1, MAX_SIDE / Math.max(srcW, srcH))
   const w = Math.max(1, Math.round(srcW * scale))
@@ -94,28 +110,35 @@ export async function buildWatermarkedPhoto(
     ctx.drawImage(source, 0, 0, w, h)
   }
 
-  // Tipografi mengikuti lebar foto agar watermark selalu terbaca.
+  // Tipografi mengikuti lebar foto dan preferensi ukuran agar watermark selalu terbaca.
   const m = Math.round(w * 0.032)
-  const fsTime = Math.max(15, Math.round(w * 0.026))
-  const fsCoord = Math.max(15, Math.round(w * 0.028))
-  const fsAddr = Math.max(14, Math.round(w * 0.025))
+  const fsTime = Math.max(13, Math.round(w * 0.026 * options.scale))
+  const fsCoord = Math.max(14, Math.round(w * 0.028 * options.scale))
+  const fsAddr = Math.max(12, Math.round(w * 0.025 * options.scale))
+  const fsBrand = Math.max(11, Math.round(w * 0.018 * options.scale))
   const fontTime = `600 ${fsTime}px Archivo, system-ui, sans-serif`
   const fontCoord = `800 ${fsCoord}px Archivo, system-ui, sans-serif`
   const fontAddr = `500 ${fsAddr}px Archivo, system-ui, sans-serif`
+  const fontBrand = `800 ${fsBrand}px Archivo, system-ui, sans-serif`
   const lhTime = Math.round(fsTime * 1.35)
   const lhCoord = Math.round(fsCoord * 1.4)
   const lhAddr = Math.round(fsAddr * 1.4)
+  const lhBrand = Math.round(fsBrand * 1.5)
 
   const timeText = fmtDateTimeTz(meta.takenAt)
   const coordText =
     meta.lat != null && meta.lon != null
-      ? `${meta.lat.toFixed(6)}  ${meta.lon.toFixed(6)}`
+      ? `${meta.lat.toFixed(6)}  ${meta.lon.toFixed(6)}${
+          options.accuracy && meta.accuracy != null ? `  ±${Math.round(meta.accuracy)} m` : ''
+        }`
       : 'Koordinat GPS tidak tersedia'
   const addrLines = meta.addressLines.slice(0, 5)
 
   // Blok teks menentukan tinggi kartu peta agar keduanya rapi satu garis.
-  const blockH = lhTime + lhCoord + addrLines.length * lhAddr
-  const cardSize = meta.mapBlob ? Math.min(Math.round(w * 0.26), blockH) : 0
+  const blockH =
+    (options.brand ? lhBrand : 0) + lhTime + lhCoord + addrLines.length * lhAddr
+  const cardSize =
+    meta.mapBlob && options.map ? Math.min(Math.round(w * 0.26), blockH) : 0
 
   const maxTextW =
     cardSize > 0 ? w - m * 2 - cardSize - Math.round(m * 0.8) : w - m * 2
@@ -155,6 +178,12 @@ export async function buildWatermarkedPhoto(
   ctx.font = fontTime
   ctx.fillStyle = '#ffffff'
   ctx.fillText(fittedTime, w - m, y)
+  if (options.brand) {
+    y -= lhBrand
+    ctx.font = fontBrand
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
+    ctx.fillText('Foto GPS', w - m, y)
+  }
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
 
@@ -180,11 +209,7 @@ export async function buildWatermarkedPhoto(
       ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
       ctx.shadowBlur = 3
       ctx.textAlign = 'left'
-      ctx.fillText(
-        '© OpenStreetMap',
-        cx + Math.round(cardSize * 0.06),
-        cy + cardSize - Math.round(cardSize * 0.05),
-      )
+      ctx.fillText(MAP_ATTRIBUTION, cx + Math.round(cardSize * 0.06), cy + cardSize - Math.round(cardSize * 0.05))
       ctx.shadowBlur = 0
     } catch {
       // Peta gagal dirender, lanjutkan tanpa kartu peta.
