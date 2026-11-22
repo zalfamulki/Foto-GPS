@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Foto GPS: Kamera Watermark Lokasi',
         short_name: 'Foto GPS',
         description:
-          'Kamera kurir dengan watermark koordinat GPS, alamat, dan waktu otomatis. Foto tersimpan di perangkat.',
+          'Kamera dengan watermark koordinat GPS, alamat, dan waktu otomatis. Foto tersimpan di perangkat.',
         lang: 'id',
         theme_color: '#f7f4ee',
         background_color: '#f7f4ee',
