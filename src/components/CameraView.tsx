@@ -1,14 +1,28 @@
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { db, type PhotoRecord } from '../db'
-import { openCamera, stopStream, detectFrontLike, type Facing } from '../lib/camera'
+import {
+  openCamera,
+  stopStream,
+  detectFrontLike,
+  supportsTorch,
+  setTorch,
+  getZoomCapabilities,
+  setZoom,
+  type Facing,
+} from '../lib/camera'
 import { isGeolocationSupported, requestPosition, startWatch, type GeoFix } from '../lib/geo'
 import { reverseGeocode } from '../lib/geocode'
 import { getStaticMap } from '../lib/staticmap'
-import { buildWatermarkedPhoto, type BuiltPhoto, type CaptureMeta } from '../lib/watermark'
+import {
+  buildWatermarkedPhoto,
+  type BuiltPhoto,
+  type CaptureMeta,
+} from '../lib/watermark'
+import { loadWmOptions } from '../lib/wmsettings'
 import { embedGpsExif } from '../lib/exif-write'
 import CapturePreview from './CapturePreview'
-import { IconFlip, IconPin, IconUpload } from './Icons'
+import { IconFlip, IconPin, IconUpload, IconFlash } from './Icons'
 
 /** Akurasi dianggap bagus bila error radius tidak lebih dari nilai ini (meter). */
 const GOOD_ACCURACY_M = 15
@@ -38,6 +52,16 @@ export default function CameraView() {
   const [flash, setFlash] = useState(false)
   const [savedNote, setSavedNote] = useState(false)
   const [shot, setShot] = useState<PendingShot | null>(null)
+  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+  const [zoomCap, setZoomCap] = useState<{ min: number; max: number; step: number } | null>(
+    null,
+  )
+  const [zoomValue, setZoomValue] = useState(1)
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>())
+  const pinchRef = useRef<{ startDist: number; startZoom: number } | null>(null)
+  const zoomRafRef = useRef<number | null>(null)
+  const pendingZoomRef = useRef<number | null>(null)
 
   // Buka kamera sesuai arah; stream dihentikan saat layar preview terbuka.
   useEffect(() => {
@@ -62,6 +86,12 @@ export default function CameraView() {
         // Webcam tunggal (laptop/PC) berlabel apa pun tetap perilaku cermin.
         const fl = await detectFrontLike(stream, facing)
         if (!cancelled) setFrontLike(fl)
+        // Kapabilitas kamera: senter dan zoom opsional per perangkat.
+        setTorchSupported(supportsTorch(stream))
+        setTorchOn(false)
+        const zc = getZoomCapabilities(stream)
+        setZoomCap(zc)
+        setZoomValue(zc?.min ?? 1)
       })
       .catch((e: Error) => {
         if (!cancelled) setCameraError(e.message)
@@ -112,6 +142,7 @@ export default function CameraView() {
 
   /** Susun metadata lokasi dari fix: alamat terstruktur + peta statis berpin. */
   const buildMeta = useCallback(async (fixNow: GeoFix | null): Promise<CaptureMeta> => {
+    const wm = loadWmOptions()
     const meta: CaptureMeta = {
       lat: fixNow?.lat ?? null,
       lon: fixNow?.lon ?? null,
@@ -125,10 +156,75 @@ export default function CameraView() {
       const addr = await reverseGeocode(fixNow)
       meta.address = addr?.full ?? null
       meta.addressLines = addr?.lines ?? []
-      meta.mapBlob = await getStaticMap(fixNow.lat, fixNow.lon).catch(() => null)
+      if (wm.map) {
+        meta.mapBlob = await getStaticMap(fixNow.lat, fixNow.lon).catch(() => null)
+      }
     }
     return meta
   }, [])
+
+  const toggleTorch = useCallback(async () => {
+    const stream = streamRef.current
+    if (!stream) return
+    try {
+      const next = !torchOn
+      await setTorch(stream, next)
+      setTorchOn(next)
+    } catch {
+      setTorchSupported(false)
+    }
+  }, [torchOn])
+
+  const applyZoom = useCallback((value: number) => {
+    pendingZoomRef.current = value
+    if (zoomRafRef.current != null) return
+    zoomRafRef.current = requestAnimationFrame(async () => {
+      zoomRafRef.current = null
+      const v = pendingZoomRef.current
+      const stream = streamRef.current
+      if (v == null || !stream) return
+      try {
+        await setZoom(stream, v)
+        setZoomValue(v)
+      } catch {
+        // zoom tidak diterapkan, abaikan
+      }
+    })
+  }, [])
+
+  const pinchDistance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y)
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (cameraError) return
+    const target = e.target as HTMLElement
+    if (target.closest('button, a, input')) return
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointersRef.current.size === 2 && zoomCap) {
+      const [a, b] = [...pointersRef.current.values()]
+      pinchRef.current = { startDist: pinchDistance(a, b), startZoom: zoomValue }
+    }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointersRef.current.has(e.pointerId)) return
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const pinch = pinchRef.current
+    if (pinch && zoomCap && pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()]
+      const ratio = pinchDistance(a, b) / pinch.startDist
+      const target = Math.min(
+        zoomCap.max,
+        Math.max(zoomCap.min, pinch.startZoom * ratio),
+      )
+      applyZoom(target)
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    pointersRef.current.delete(e.pointerId)
+    if (pointersRef.current.size < 2) pinchRef.current = null
+  }
 
   const captureFromFile = useCallback(
     async (file: File | undefined) => {
@@ -142,7 +238,14 @@ export default function CameraView() {
             fixNow = await requestPosition(10000).catch(() => null)
           }
           const meta = await buildMeta(fixNow)
-          const built = await buildWatermarkedPhoto(bmp, bmp.width, bmp.height, meta)
+          const built = await buildWatermarkedPhoto(
+            bmp,
+            bmp.width,
+            bmp.height,
+            meta,
+            false,
+            loadWmOptions(),
+          )
           const finalBlob = await embedGpsExif(built.full, meta)
           setShot({ built, finalBlob, meta, url: URL.createObjectURL(finalBlob) })
         } finally {
@@ -173,6 +276,7 @@ export default function CameraView() {
         v.videoHeight,
         meta,
         frontLike,
+        loadWmOptions(),
       )
       const finalBlob = await embedGpsExif(built.full, meta)
       setFlash(true)
@@ -231,9 +335,13 @@ export default function CameraView() {
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden ${
+      className={`relative h-full w-full touch-none overflow-hidden ${
         cameraError ? 'bg-canvas' : 'bg-black'
       }`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       {!cameraError && (
         <video
@@ -283,6 +391,38 @@ export default function CameraView() {
           </motion.span>
         )}
       </motion.div>
+
+      {(torchSupported || zoomCap) && !cameraError && (
+        <motion.div
+          className="absolute right-3 top-3 flex flex-col items-end gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {torchSupported && (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.9 }}
+              onClick={() => void toggleTorch()}
+              aria-label={torchOn ? 'Matikan lampu senter' : 'Nyalakan lampu senter'}
+              aria-pressed={torchOn}
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
+                torchOn ? 'bg-brand text-ink' : 'bg-black/55 text-white hover:bg-black/75'
+              }`}
+            >
+              <IconFlash size={18} />
+            </motion.button>
+          )}
+          {zoomCap && zoomValue > zoomCap.min && (
+            <span
+              className="rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold tabular-nums text-white"
+              role="status"
+            >
+              {(zoomValue / zoomCap.min).toFixed(1)}x
+            </span>
+          )}
+        </motion.div>
+      )}
 
       {cameraError ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">

@@ -22,6 +22,43 @@ export function stopStream(stream: MediaStream | null): void {
   stream?.getTracks().forEach((t) => t.stop())
 }
 
+interface ZoomCaps {
+  min: number
+  max: number
+  step: number
+}
+
+/** Lampu senter tersedia hanya pada kamera belakang yang mendukung (sebagian besar HP). */
+export function supportsTorch(stream: MediaStream): boolean {
+  const track = stream.getVideoTracks()[0]
+  const caps = track?.getCapabilities?.() as
+    | (MediaTrackCapabilities & { torch?: boolean })
+    | undefined
+  return Boolean(caps?.torch)
+}
+
+export async function setTorch(stream: MediaStream, on: boolean): Promise<void> {
+  const track = stream.getVideoTracks()[0]
+  await track?.applyConstraints({
+    advanced: [{ torch: on }],
+  } as unknown as MediaTrackConstraints)
+}
+
+export function getZoomCapabilities(stream: MediaStream): ZoomCaps | null {
+  const track = stream.getVideoTracks()[0]
+  const caps = track?.getCapabilities?.() as
+    | (MediaTrackCapabilities & { zoom?: ZoomCaps })
+    | undefined
+  return caps?.zoom ?? null
+}
+
+export async function setZoom(stream: MediaStream, value: number): Promise<void> {
+  const track = stream.getVideoTracks()[0]
+  await track?.applyConstraints({
+    advanced: [{ zoom: value }],
+  } as unknown as MediaTrackConstraints)
+}
+
 /**
  * Deteksi apakah kamera aktif menampilkan "kita" (perlu cermin).
  * Mode kamera depan selalu cermin. Mode belakang hanya tidak cermin bila

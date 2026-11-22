@@ -83,6 +83,14 @@ export function IconUpload({ size = 24, className }: IconProps) {
   )
 }
 
+export function IconFlash({ size = 24, className }: IconProps) {
+  return (
+    <svg {...svgProps(size, className)}>
+      <path d="M13 2 5.2 13.5h4.8L10.6 22l8.2-11.5h-4.8z" />
+    </svg>
+  )
+}
+
 export function IconClose({ size = 24, className }: IconProps) {
   return (
     <svg {...svgProps(size, className)}>
