@@ -1,0 +1,17 @@
+# Dependensi
+node_modules/
+
+# Hasil build
+dist/
+dev-dist/
+
+# Deployment
+.vercel/
+
+# Sistem
+.DS_Store
+Thumbs.db
+
+# Log & lokal
+*.log
+*.local
