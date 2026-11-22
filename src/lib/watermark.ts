@@ -78,6 +78,28 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): str
 }
 
 /**
+ * Teks dengan garis tepi gelap agar tetap terbaca di foto berlatar cerah.
+ * Stroke digambar sebelum fill sehingga hanya mengelilingi huruf.
+ */
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  font: string,
+  fontSize: number,
+  fill: string,
+) {
+  ctx.font = font
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = Math.max(1.5, Math.round(fontSize * 0.09))
+  ctx.strokeStyle = 'rgba(10, 8, 3, 0.85)'
+  ctx.strokeText(text, x, y)
+  ctx.fillStyle = fill
+  ctx.fillText(text, x, y)
+}
+
+/**
  * Render foto dengan watermark modern ala aplikasi kurir:
  * scrim gradien di bawah, waktu + koordinat + alamat bertingkat rata-kanan,
  * dan kartu peta mini berpin di kiri-bawah.
@@ -166,23 +188,15 @@ export async function buildWatermarkedPhoto(
   ctx.shadowOffsetY = 1
   let y = h - m
   for (let i = fittedAddr.length - 1; i >= 0; i--) {
-    ctx.font = fontAddr
-    ctx.fillStyle = '#f0f3f8'
-    ctx.fillText(fittedAddr[i], w - m, y)
+    drawText(ctx, fittedAddr[i], w - m, y, fontAddr, fsAddr, '#f0f3f8')
     y -= lhAddr
   }
-  ctx.font = fontCoord
-  ctx.fillStyle = '#f5a524'
-  ctx.fillText(fittedCoord, w - m, y)
+  drawText(ctx, fittedCoord, w - m, y, fontCoord, fsCoord, '#f5a524')
   y -= lhCoord
-  ctx.font = fontTime
-  ctx.fillStyle = '#ffffff'
-  ctx.fillText(fittedTime, w - m, y)
+  drawText(ctx, fittedTime, w - m, y, fontTime, fsTime, '#ffffff')
   if (options.brand) {
     y -= lhBrand
-    ctx.font = fontBrand
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
-    ctx.fillText('Foto GPS', w - m, y)
+    drawText(ctx, 'Foto GPS', w - m, y, fontBrand, fsBrand, 'rgba(255, 255, 255, 0.95)')
   }
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
@@ -204,12 +218,19 @@ export async function buildWatermarkedPhoto(
       ctx.lineWidth = Math.max(2, Math.round(w * 0.003))
       rrPath(ctx, cx, cy, cardSize, cardSize, radius)
       ctx.stroke()
-      ctx.font = `500 ${Math.max(10, Math.round(w * 0.013))}px Archivo, system-ui, sans-serif`
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
+      const fsAttr = Math.max(10, Math.round(w * 0.013))
       ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
       ctx.shadowBlur = 3
       ctx.textAlign = 'left'
-      ctx.fillText(MAP_ATTRIBUTION, cx + Math.round(cardSize * 0.06), cy + cardSize - Math.round(cardSize * 0.05))
+      drawText(
+        ctx,
+        MAP_ATTRIBUTION,
+        cx + Math.round(cardSize * 0.06),
+        cy + cardSize - Math.round(cardSize * 0.05),
+        `500 ${fsAttr}px Archivo, system-ui, sans-serif`,
+        fsAttr,
+        'rgba(255, 255, 255, 0.95)',
+      )
       ctx.shadowBlur = 0
     } catch {
       // Peta gagal dirender, lanjutkan tanpa kartu peta.
