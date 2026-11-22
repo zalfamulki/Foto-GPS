@@ -1,4 +1,4 @@
-import { motion, type Variants } from 'motion/react'
+import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import pkg from '../../package.json'
@@ -23,6 +23,48 @@ import {
   subscribeInstallPrompt,
 } from '../lib/pwa'
 import { exportPhotosZip, importPhotosZip } from '../lib/zip'
+
+function isIos(): boolean {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+}
+
+/** Langkah pemasangan manual per platform, untuk browser tanpa pemicu otomatis. */
+function InstallSteps() {
+  const ios = isIos()
+  return (
+    <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-ink/80">
+      {ios ? (
+        <>
+          <li>
+            Ketuk ikon <span className="font-semibold text-ink">Bagikan</span> (kotak
+            dengan panah ke atas) di bilah bawah Safari.
+          </li>
+          <li>
+            Gulir lalu pilih{' '}
+            <span className="font-semibold text-ink">Tambahkan ke Layar Utama</span>.
+          </li>
+          <li>
+            Ketuk <span className="font-semibold text-ink">Tambah</span>. Selesai.
+          </li>
+        </>
+      ) : (
+        <>
+          <li>
+            Ketuk menu <span className="font-semibold text-ink">titik tiga</span> di pojok
+            kanan atas browser.
+          </li>
+          <li>
+            Pilih <span className="font-semibold text-ink">Instal aplikasi</span> atau{' '}
+            <span className="font-semibold text-ink">Tambahkan ke layar utama</span>.
+          </li>
+          <li>
+            Konfirmasi <span className="font-semibold text-ink">Instal</span>. Selesai.
+          </li>
+        </>
+      )}
+    </ol>
+  )
+}
 
 function Toggle({
   label,
@@ -79,6 +121,8 @@ export default function Settings() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [wm, setWm] = useState<WmOptions>(() => loadWmOptions())
+  const [installing, setInstalling] = useState(false)
+  const [stepsOpen, setStepsOpen] = useState(false)
   const zipInputRef = useRef<HTMLInputElement>(null)
   const count = useLiveQuery(() => db.photos.count())
   const installAvailable = useSyncExternalStore(
@@ -94,6 +138,16 @@ export default function Settings() {
     refreshInfo()
   }, [refreshInfo])
 
+  // Escape menutup dialog langkah pemasangan.
+  useEffect(() => {
+    if (!stepsOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setStepsOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [stepsOpen])
+
   const enablePersist = async () => {
     await ensurePersistentStorage()
     refreshInfo()
@@ -103,6 +157,16 @@ export default function Settings() {
     const next = { ...wm, ...patch }
     setWm(next)
     saveWmOptions(next)
+  }
+
+  const handleInstallClick = async () => {
+    if (installAvailable) {
+      setInstalling(true)
+      await runInstallPrompt()
+      setInstalling(false)
+      return
+    }
+    setStepsOpen(true)
   }
 
   const handleExport = async () => {
@@ -115,7 +179,7 @@ export default function Settings() {
       const url = URL.createObjectURL(zipBlob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `fotogps-backup-${new Date().toISOString().slice(0, 10)}.zip`
+      a.download = `lokasnap-backup-${new Date().toISOString().slice(0, 10)}.zip`
       a.click()
       URL.revokeObjectURL(url)
       setMsg({ ok: true, text: `Cadangan berisi ${photos.length} foto berhasil dibuat.` })
@@ -218,23 +282,73 @@ export default function Settings() {
           variants={cardVariants}
           className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
         >
-          <h2 className="text-sm font-semibold text-ink">Install aplikasi</h2>
-          {installAvailable ? (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => void runInstallPrompt()}
-              className="mt-3 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand-strong"
-            >
-              Install ke layar utama
-            </motion.button>
-          ) : (
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Buka menu browser lalu pilih "Tambahkan ke layar utama" untuk memasang seperti
-              aplikasi biasa.
+          <h2 className="text-sm font-semibold text-ink">Pasang aplikasi</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Ikon di layar utama, buka instan, dan tetap berfungsi tanpa internet.
+          </p>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => void handleInstallClick()}
+            disabled={installing}
+            className="mt-3 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand-strong disabled:opacity-50"
+          >
+            {installAvailable
+              ? installing
+                ? 'Menyiapkan…'
+                : 'Pasang sekarang'
+              : 'Pasang aplikasi'}
+          </motion.button>
+          {!installAvailable && (
+            <p className="mt-2 text-xs text-muted">
+              Browser ini belum menawarkan pemasangan langsung. Tombol akan membuka
+              langkah pemasangan manual.
             </p>
           )}
         </motion.section>
+
+        <AnimatePresence>
+          {stepsOpen && (
+            <motion.div
+              key="install-steps"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Langkah pemasangan aplikasi"
+              className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setStepsOpen(false)}
+            >
+              <motion.div
+                className="rounded-t-3xl border-t border-line bg-surface px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-5"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
+                <h3 className="text-base font-bold text-ink">Pasang ke layar utama</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Ikuti langkah sesuai perangkat Anda, kurang dari 10 detik.
+                </p>
+                <div className="mt-4">
+                  <InstallSteps />
+                </div>
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setStepsOpen(false)}
+                  className="mt-5 w-full rounded-xl bg-brand py-3 text-sm font-bold text-ink shadow-sm transition hover:bg-brand-strong"
+                >
+                  Mengerti, tutup
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.section
           variants={cardVariants}

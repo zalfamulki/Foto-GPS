@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type ComponentType } from 'react'
 import CameraView from './components/CameraView'
 import Gallery from './components/Gallery'
+import InstallBanner from './components/InstallBanner'
 import Settings from './components/Settings'
 import Splash from './components/Splash'
 import UpdateToast from './components/UpdateToast'
@@ -46,6 +47,8 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <InstallBanner />
 
       <nav
         aria-label="Navigasi utama"
