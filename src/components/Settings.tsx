@@ -22,6 +22,7 @@ import {
   runInstallPrompt,
   subscribeInstallPrompt,
 } from '../lib/pwa'
+import { exportFile } from '../lib/save'
 import { exportPhotosZip, importPhotosZip } from '../lib/zip'
 
 function isIos(): boolean {
@@ -176,13 +177,24 @@ export default function Settings() {
     try {
       const photos = await db.photos.orderBy('takenAt').toArray()
       const zipBlob = await exportPhotosZip(photos)
-      const url = URL.createObjectURL(zipBlob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `lokasnap-backup-${new Date().toISOString().slice(0, 10)}.zip`
-      a.click()
-      URL.revokeObjectURL(url)
-      setMsg({ ok: true, text: `Cadangan berisi ${photos.length} foto berhasil dibuat.` })
+      const fileName = `lokasnap-backup-${new Date().toISOString().slice(0, 10)}.zip`
+      // Sheet bagikan di ponsel (iPhone tidak menghormati <a download>);
+      // unduhan biasa tetap dipakai di desktop.
+      const outcome = await exportFile(zipBlob, fileName)
+      if (outcome === 'shared') {
+        setMsg({
+          ok: true,
+          text: `Cadangan ${photos.length} foto dikirim ke sheet bagikan — pilih "Simpan ke File" untuk menyimpannya.`,
+        })
+      } else if (outcome === 'downloaded') {
+        setMsg({ ok: true, text: `Cadangan berisi ${photos.length} foto berhasil dibuat.` })
+      } else if (outcome === 'opened') {
+        setMsg({
+          ok: false,
+          text: 'Cadangan dibuka di tab baru. Tekan lama berkas lalu pilih "Bagikan" → "Simpan ke File".',
+        })
+      }
+      // 'cancelled': pengguna menutup sheet, tidak perlu pesan.
     } catch {
       setMsg({ ok: false, text: 'Ekspor gagal. Penyimpanan mungkin penuh.' })
     } finally {
