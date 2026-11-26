@@ -11,7 +11,8 @@ PWA kamera untuk **mendokumentasikan lokasi**: jepret foto, dan aplikasi otomati
 - **Watermark modern**: scrim gradien, teks bergaris tepi agar tetap terbaca di foto terang, waktu per zona perangkat, koordinat 6 desimal amber, alamat terstruktur per baris (Nominatim), kartu peta mini berpin yang tingginya menyesuaikan blok alamat.
 - **Pengaturan isi watermark**: aktif/nonaktifkan kartu peta, akurasi, label aplikasi, dan ukuran teks (kecil/sedang/besar).
 - **EXIF GPS tertanam** di setiap JPEG (lat/lon DMS, waktu, akurasi, datum WGS-84), bisa diverifikasi ulang dari detail foto.
-- **Galeri** dengan thumbnail, detail lengkap (DMS, akurasi, alamat, peta, link Google Maps), unduh, hapus.
+- **Galeri** dengan thumbnail, detail lengkap (DMS, akurasi, alamat, peta, link Google Maps), simpan ke galeri perangkat, hapus.
+- **Simpan ke galeri perangkat**: ekspor foto lewat lembar bagikan OS — pilih "Simpan ke Galeri" (Android) atau "Simpan Gambar" (iPhone) — sehingga foto masuk galeri foto, bukan folder Unduhan; di desktop tetap unduh biasa, dan iOS tanpa Web Share berkas dibuka di tab baru (tekan lama → Tambahkan ke Foto).
 - **Cadangan ZIP**: ekspor semua foto + `metadata.json`, dan impor untuk pulihkan.
 - **Pasang mudah**: banner dan tombol pemasangan dengan panduan langkah-demi-langkah per perangkat.
 - **PWA**: install ke layar utama, jalan offline (service worker + precache), pembaruan otomatis tiap jam.
