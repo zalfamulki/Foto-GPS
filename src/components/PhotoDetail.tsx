@@ -6,7 +6,8 @@ import { fmtCoords, fmtDateTime, fmtDms, photoFileName } from '../lib/format'
 import { readExifSummary, type ExifSummary } from '../lib/exif-read'
 import { MAP_ATTRIBUTION } from '../lib/staticmap'
 import { useObjectUrl } from '../lib/useObjectUrl'
-import { IconClose, IconDownload } from './Icons'
+import { canShareToGallery, exportFile } from '../lib/save'
+import { IconClose, IconDownload, IconShare } from './Icons'
 
 interface Props {
   id: string
@@ -19,6 +20,9 @@ export default function PhotoDetail({ id, onClose }: Props) {
   const mapUrl = useObjectUrl(photo?.mapBlob ?? null)
   const [exif, setExif] = useState<ExifSummary | null>(null)
   const [checking, setChecking] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const shareCapable = canShareToGallery()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -31,6 +35,8 @@ export default function PhotoDetail({ id, onClose }: Props) {
   useEffect(() => {
     setExif(null)
     setChecking(false)
+    setSaving(false)
+    setSaveMsg(null)
   }, [id])
 
   const mapsUrl =
@@ -50,6 +56,32 @@ export default function PhotoDetail({ id, onClose }: Props) {
     if (!window.confirm('Hapus foto ini secara permanen?')) return
     await db.photos.delete(photo.id)
     onClose()
+  }
+
+  /** Simpan ke galeri perangkat (sheet bagikan OS) atau unduh di desktop. */
+  const handleSave = async () => {
+    if (!photo || saving) return
+    setSaving(true)
+    setSaveMsg(null)
+    try {
+      const outcome = await exportFile(photo.blob, photoFileName(photo))
+      if (outcome === 'shared') {
+        setSaveMsg(
+          'Pilih "Simpan ke Galeri" (Android) atau "Simpan Gambar" (iPhone) pada sheet bagikan agar foto masuk galeri perangkat.',
+        )
+      } else if (outcome === 'downloaded') {
+        setSaveMsg('Foto tersimpan di folder Unduhan.')
+      } else if (outcome === 'opened') {
+        setSaveMsg(
+          'Foto dibuka di tab baru. Tekan lama foto lalu pilih "Tambahkan ke Foto" untuk menyimpan ke galeri.',
+        )
+      }
+      // 'cancelled': pengguna menutup sheet, tidak perlu pesan.
+    } catch {
+      setSaveMsg('Gagal menyimpan foto. Coba lagi.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -170,15 +202,15 @@ export default function PhotoDetail({ id, onClose }: Props) {
             </motion.a>
           )}
           {url && (
-            <motion.a
-              href={url}
-              download={photoFileName(photo)}
+            <motion.button
+              type="button"
+              onClick={() => void handleSave()}
               whileTap={{ scale: 0.97 }}
               className={`flex items-center justify-center gap-2 rounded-xl border border-line py-3 text-sm font-semibold text-ink transition hover:bg-raised${mapsUrl ? '' : ' col-span-2'}`}
             >
-              <IconDownload size={16} />
-              Unduh
-            </motion.a>
+              {shareCapable ? <IconShare size={16} /> : <IconDownload size={16} />}
+              {shareCapable ? 'Simpan ke galeri' : 'Unduh'}
+            </motion.button>
           )}
           <motion.button
             type="button"
@@ -189,6 +221,11 @@ export default function PhotoDetail({ id, onClose }: Props) {
             Hapus foto
           </motion.button>
         </div>
+        {saveMsg && (
+          <p className="mt-2 text-xs font-medium leading-relaxed text-muted" role="status">
+            {saveMsg}
+          </p>
+        )}
       </motion.div>
     </motion.div>
   )

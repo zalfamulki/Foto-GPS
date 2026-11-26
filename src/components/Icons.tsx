@@ -109,3 +109,13 @@ export function IconDownload({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+export function IconShare({ size = 24, className }: IconProps) {
+  return (
+    <svg {...svgProps(size, className)}>
+      <path d="M12 15V4" />
+      <path d="m8.5 7.5 3.5-3.5 3.5 3.5" />
+      <path d="M5 11v7.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V11" />
+    </svg>
+  )
+}
