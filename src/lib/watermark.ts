@@ -35,6 +35,15 @@ export interface BuiltPhoto {
   height: number
 }
 
+/** Satu baris teks watermark beserta tipografinya. */
+interface WmLine {
+  text: string
+  font: string
+  fs: number
+  lh: number
+  fill: string
+}
+
 const MAX_SIDE = 1600
 const THUMB_SIDE = 480
 
@@ -134,10 +143,10 @@ export async function buildWatermarkedPhoto(
 
   // Tipografi mengikuti lebar foto dan preferensi ukuran agar watermark selalu terbaca.
   const m = Math.round(w * 0.032)
-  const fsTime = Math.max(13, Math.round(w * 0.026 * options.scale))
-  const fsCoord = Math.max(14, Math.round(w * 0.028 * options.scale))
-  const fsAddr = Math.max(12, Math.round(w * 0.025 * options.scale))
-  const fsBrand = Math.max(11, Math.round(w * 0.018 * options.scale))
+  const fsTime = Math.max(15, Math.round(w * 0.028 * options.scale))
+  const fsCoord = Math.max(16, Math.round(w * 0.032 * options.scale))
+  const fsAddr = Math.max(15, Math.round(w * 0.032 * options.scale))
+  const fsBrand = Math.max(12, Math.round(w * 0.02 * options.scale))
   const fontTime = `600 ${fsTime}px Archivo, system-ui, sans-serif`
   const fontCoord = `800 ${fsCoord}px Archivo, system-ui, sans-serif`
   const fontAddr = `500 ${fsAddr}px Archivo, system-ui, sans-serif`
@@ -156,20 +165,67 @@ export async function buildWatermarkedPhoto(
       : 'Koordinat GPS tidak tersedia'
   const addrLines = meta.addressLines.slice(0, 5)
 
+  // Susun baris dari bawah ke atas, persis urutan render: alamat (baris
+  // terakhir paling bawah), koordinat, waktu, lalu label aplikasi.
+  const lines: WmLine[] = [
+    ...[...addrLines].reverse().map(
+      (l): WmLine => ({
+        text: l,
+        font: fontAddr,
+        fs: fsAddr,
+        lh: lhAddr,
+        fill: '#f0f3f8',
+      }),
+    ),
+    { text: coordText, font: fontCoord, fs: fsCoord, lh: lhCoord, fill: '#f5a524' },
+    { text: timeText, font: fontTime, fs: fsTime, lh: lhTime, fill: '#ffffff' },
+  ]
+  if (options.brand) {
+    lines.push({
+      text: 'Lokasnap',
+      font: fontBrand,
+      fs: fsBrand,
+      lh: lhBrand,
+      fill: 'rgba(255, 255, 255, 0.95)',
+    })
+  }
+
   // Blok teks menentukan tinggi kartu peta agar keduanya rapi satu garis.
-  const blockH =
-    (options.brand ? lhBrand : 0) + lhTime + lhCoord + addrLines.length * lhAddr
-  const cardSize =
+  const blockH = lines.reduce((sum, l) => sum + l.lh, 0)
+  let cardSize =
     meta.mapBlob && options.map ? Math.min(Math.round(w * 0.26), blockH) : 0
 
-  const maxTextW =
-    cardSize > 0 ? w - m * 2 - cardSize - Math.round(m * 0.8) : w - m * 2
-  ctx.font = fontAddr
-  const fittedAddr = addrLines.map((l) => fitText(ctx, l, maxTextW))
-  ctx.font = fontTime
-  const fittedTime = fitText(ctx, timeText, maxTextW)
-  ctx.font = fontCoord
-  const fittedCoord = fitText(ctx, coordText, maxTextW)
+  const fullW = w - m * 2
+  const gap = Math.round(m * 0.8)
+
+  // Jarak puncak tiap baris dari dasar blok: baris yang berada di atas
+  // puncak kartu peta boleh memakai lebar penuh, sisanya menyampingi kartu.
+  const topDists = lines.map((l, i) => {
+    const belowH = lines.slice(0, i).reduce((sum, b) => sum + b.lh, 0)
+    return belowH + Math.round(l.fs * 0.85)
+  })
+  const maxWFor = (i: number): number =>
+    cardSize > 0 && topDists[i] <= cardSize ? fullW - cardSize - gap : fullW
+
+  // Bila baris menyamping kartu tidak muat (umumnya waktu & koordinat yang
+  // panjang), susutkan kartu — ukuran teks tidak dikorbankan demi kartu.
+  let widest = 0
+  lines.forEach((l, i) => {
+    if (cardSize > 0 && topDists[i] <= cardSize) {
+      ctx.font = l.font
+      const need = Math.ceil(ctx.measureText(l.text).width)
+      if (need > fullW - cardSize - gap) widest = Math.max(widest, need)
+    }
+  })
+  if (widest > 0) {
+    cardSize = Math.min(cardSize, fullW - gap - widest - Math.round(m * 0.3))
+    if (cardSize < Math.round(w * 0.14)) cardSize = 0
+  }
+
+  const fitted = lines.map((l, i) => {
+    ctx.font = l.font
+    return fitText(ctx, l.text, maxWFor(i))
+  })
 
   const scrimH = blockH + m * 2
   const y0 = h - scrimH
@@ -187,16 +243,9 @@ export async function buildWatermarkedPhoto(
   ctx.shadowBlur = Math.max(3, Math.round(w * 0.005))
   ctx.shadowOffsetY = 1
   let y = h - m
-  for (let i = fittedAddr.length - 1; i >= 0; i--) {
-    drawText(ctx, fittedAddr[i], w - m, y, fontAddr, fsAddr, '#f0f3f8')
-    y -= lhAddr
-  }
-  drawText(ctx, fittedCoord, w - m, y, fontCoord, fsCoord, '#f5a524')
-  y -= lhCoord
-  drawText(ctx, fittedTime, w - m, y, fontTime, fsTime, '#ffffff')
-  if (options.brand) {
-    y -= lhBrand
-    drawText(ctx, 'Lokasnap', w - m, y, fontBrand, fsBrand, 'rgba(255, 255, 255, 0.95)')
+  for (let i = 0; i < lines.length; i++) {
+    drawText(ctx, fitted[i], w - m, y, lines[i].font, lines[i].fs, lines[i].fill)
+    y -= lines[i].lh
   }
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
