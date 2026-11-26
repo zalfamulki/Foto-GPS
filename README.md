@@ -8,13 +8,13 @@ PWA kamera untuk **mendokumentasikan lokasi**: jepret foto, dan aplikasi otomati
 - **Senter** untuk kamera belakang yang mendukung, dan **zoom pinch** langsung dari layar pratinjau (mengikuti kemampuan perangkat).
 - **Cermin cerdas**: webcam tunggal (laptop/PC) dan kamera depan ditampilkan serta disimpan seperti cermin sungguhan; kamera belakang tetap objektif.
 - **GPS akurasi tinggi** (`enableHighAccuracy`) dengan indikator akurasi live; jepret saat sinyal terkunci.
-- **Watermark modern**: scrim gradien, teks bergaris tepi agar tetap terbaca di foto terang, waktu per zona perangkat, koordinat 6 desimal amber, alamat terstruktur per baris (Nominatim), kartu peta mini berpin yang tingginya menyesuaikan blok alamat.
+- **Watermark modern**: scrim gradien, teks bergaris tepi agar tetap terbaca di foto terang, waktu per zona perangkat, koordinat 6 desimal amber, alamat terstruktur per baris (Nominatim), kartu peta mini berpin yang tingginya menyesuaikan blok alamat. Teks besar dan mudah dibaca; baris di atas kartu peta otomatis memakai lebar penuh agar tidak terpotong.
 - **Pengaturan isi watermark**: aktif/nonaktifkan kartu peta, akurasi, label aplikasi, dan ukuran teks (kecil/sedang/besar).
 - **EXIF GPS tertanam** di setiap JPEG (lat/lon DMS, waktu, akurasi, datum WGS-84), bisa diverifikasi ulang dari detail foto.
 - **Galeri** dengan thumbnail, detail lengkap (DMS, akurasi, alamat, peta, link Google Maps), simpan ke galeri perangkat, hapus.
 - **Simpan ke galeri perangkat**: ekspor foto lewat lembar bagikan OS — pilih "Simpan ke Galeri" (Android) atau "Simpan Gambar" (iPhone) — sehingga foto masuk galeri foto, bukan folder Unduhan; di desktop tetap unduh biasa, dan iOS tanpa Web Share berkas dibuka di tab baru (tekan lama → Tambahkan ke Foto).
 - **Cadangan ZIP**: ekspor semua foto + `metadata.json`, dan impor untuk pulihkan.
-- **Pasang mudah**: banner dan tombol pemasangan dengan panduan langkah-demi-langkah per perangkat.
+- **Pasang mudah**: tombol pasang langsung memunculkan dialog pemasangan bawaan browser (`beforeinstallprompt` / Web Install API) — sekali ketuk terpasang di layar utama; perangkat tanpa dukungan (mis. iPhone) mendapat panduan langkah-demi-langkah.
 - **PWA**: install ke layar utama, jalan offline (service worker + precache), pembaruan otomatis tiap jam.
 - **Penyimpanan persisten**: IndexedDB (Dexie) dengan `navigator.storage.persist()`, tampilan kuota, alamat & peta di-cache untuk penggunaan ulang offline.
 
